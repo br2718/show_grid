@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+<!-- jQuery CSS --> 
+<link rel="stylesheet" type="text/css" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css" />
+
+<!-- jqGrid CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.8.0/css/ui.jqgrid.css" />
+
+<!-- jQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+<!-- jQuery UI -->
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+
+<!-- jqGrid language file code-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.2/i18n/grid.locale-en.js"></script>
+
+<!-- jqGrid -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.2/jquery.jqgrid.min.js"></script>
+
+<!-- jQuery spinner plugin -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/spin.js/2.3.2/spin.min.js"></script>
+
+
+</head>
+<body>
+<style type="text/css">
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+h1,h2 {
+    font-family: "Times New Roman", Georgia, Serif;
+	margin: 0;
+	padding: 0;
+} 
+div.mytable {
+    overflow: auto;
+}
+.hidden {
+    display: none;
+}
+.grid-stuff{
+    display:none;
+}
+.strikethrough {
+    text-decoration: line-through;
+}
+.nostrikethrough {
+    text-decoration: none;
+}
+.emptyClass {
+}
+.emphasis{
+     font-style: italic;
+     font-weight: bold;
+}
+.bold {
+     font-weight: bold;
+}
+.notes {
+     font-style: normal;
+}
+#htmlTableLink {
+    font-size: larger;
+    font-weight: bold;
+}
+#content {
+    background-color: white;
+    text-align:middle;
+    height:200px;
+    color:green;
+    position: relative;
+}
+#wrapper{
+    //border:1px solid black;
+}
+</style>
+
+<script type="text/javascript">
+<!-- 
+
+<!--******************************* $(doc).ready() main function *******************************-->
+$(document).ready(function(){
+  try{
+
+  ///////////////////////// Other functions /////////////////////////
+  // JavaScript trim() polyfill that must be run before any other code
+  // JavaScript trim() not available until IE9
+  // Source is https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/Trim
+  if (!String.prototype.trim) {
+    (function() {
+      // Make sure we trim BOM and NBSP
+      var rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
+      String.prototype.trim = function() {
+        return this.replace(rtrim, '');
+      };
+    })();
+  }
+
+  function strikethroughFormatter(cellvalue, options, rowObject){
+    if (typeof cellvalue !== 'undefined') {
+      // Get isDeleted node
+      /*for (var i = 0; i < rowObject.childNodes.length; i++) {
+        node = rowObject.childNodes[i];
+        if(node.nodeName === 'isDeleted') {
+          break;
+        }
+      }
+
+      // Return
+      return node.innerHTML === 'true' ? '<span style="text-decoration:line-through">' + cellvalue + '</span>' : "<span>" + cellvalue + "</span>";*/
+      return options.rowData.isDeleted === 'true' ? '<span style="text-decoration:line-through">' + cellvalue + '</span>' : "<span>" + cellvalue + "</span>";
+    } 
+    else { 
+      return ''; 
+    }
+  }
+
+
+  ///////////////////////// Misc /////////////////////////
+  // HIde stuff that is not need when JavaScript is enabled
+  $('.hideOnJsEnabled').toggleClass('hidden', true);
+
+
+  ///////////////////////// Ajax functions /////////////////////////
+  $(document)
+  .ajaxStart(function(){  
+    // Hide the grid
+    $('.ui-jqgrid').hide();  
+
+    //Hide the buttons and other items that will be used with the grid
+    //$('.grid-stuff').toggleClass('hidden', true);
+
+    // Show the spinner area
+    $('#wrapper').toggleClass('hidden', false);
+
+      target = document.getElementById('content');
+      spinner = new Spinner(opts).spin();
+      target.appendChild(spinner.el);
+  })
+  .ajaxStop(function(){ 
+    //spinner.stop();
+    //$('#wrapper').addClass('hidden'); 
+
+    // Now that the grid is loaded and set up, show it
+    //$('.ui-jqgrid').fadeIn(1000);  
+
+    //Show the buttons and other items that will be used with the grid
+    //$('.grid-stuff').fadeIn(1000);
+  });
+
+
+  ///////////////////////// Define spinner options /////////////////////////
+  var opts, target, spinner;
+  opts = {
+        lines: 11, // The number of lines to draw
+        length: 40, // The length of each line
+        width: 15, // The line thickness
+        radius: 45, // The radius of the inner circle
+        corners: 1, // Corner roundness (0..1)
+        rotate: 0, // The rotation offset
+        direction: 1, // 1: clockwise, -1: counterclockwise
+        color: '#000', // #rgb or #rrggbb or array of colors
+        speed: 1.1, // Rounds per second
+        trail: 45, // Afterglow percentage
+        shadow: false, // Whether to render a shadow
+        hwaccel: false, // Whether to use hardware acceleration
+        className: 'spinner', // The CSS class to assign to the spinner
+        zIndex: 2e9, // The z-index (defaults to 2000000000)
+        top: '50%', // Top position relative to parent in px
+        left: '50%' // Left position relative to parent in px
+    }; 
+
+
+  ///////////////////////// Get data file URL /////////////////////////
+  // This accomodates users who log on using the devvewiki hostname vs. those who log on using 10.20.10.73
+  //alert( 'document location is ' + document.location );
+  //alert('window location is '+ window.location);
+  
+  var gridFileUrl = './show_grid_data.xml';  
+  //var gridFileUrl = gridFile;
+  
+  function createCORSRequest(method, url){
+    var xhr = new XMLHttpRequest();
+    if ("withCredentials" in xhr){
+        xhr.open(method, url, true);
+    } else if (typeof XDomainRequest != "undefined"){
+        xhr = new XDomainRequest();
+        xhr.open(method, url);
+    } else {
+        xhr = null;
+    }
+    return xhr;
+}
+
+var request = createCORSRequest("get", gridFileUrl);
+  
+if (request){
+    //request.onload = function(){
+        //do something with request.responseText
+    //};
+	request.onload = createGrid(gridFileUrl);
+    request.send();
+}
+
+  
+  ///////////////////////// Create jqGrid /////////////////////////
+  // Create the jqGrid inside a timer to avoid the dreaded stop running this script dialog, especially in IE8
+function createGrid(gridFileUrl) {
+  var grid = $("#theGrid");
+  
+  $.ajax({
+      url: gridFileUrl,
+      dataType: 'xml',
+      type: 'GET',
+      success: function (xmlData) {
+          var data = [], item = null, childNodes = xmlData.documentElement.childNodes, iNode, nNodes = childNodes.length, node, startXmlParsing = new Date(), xmlParsingTime;
+		for (iNode = 0; iNode < nNodes; iNode++) {
+			node = childNodes[iNode];
+			if (node.nodeType === 1 && node.nodeName === "item") {
+				item = node;
+				var itemChildNodes = item.childNodes, iSubNode, nSubNodes = itemChildNodes.length, dataItem = {}, propNode, child;
+				for (iSubNode = 0; iSubNode < nSubNodes; iSubNode++) {
+                                    propNode = itemChildNodes[iSubNode];
+                                    if (propNode.nodeType === 1 && propNode.childNodes.length > 0) {
+                                        dataItem[propNode.nodeName] = propNode.childNodes[0].nodeValue;
+                                    }
+				}
+				var attributes = item.attributes, iAttribute, nAttributes = attributes.length, attr;
+				for (iAttribute = 0; iAttribute < nAttributes; iAttribute++) {
+				    attr = attributes[iAttribute];
+				    dataItem[attr.name] = attr.nodeValue;
+				}
+                                data.push(dataItem);
+			}
+		}
+		xmlParsingTime = new Date() - startXmlParsing;
+          setTimeout(function () {
+          grid.jqGrid({
+              treeGrid: true,
+              treeGridModel: 'adjacency',
+              ExpandColumn: 'itemName',
+              ExpandColClick: true,
+              gridview: false,
+              loadonce: true,
+              loadui: 'disable',  // I'll use my own ajax progress indicator
+              autoencode: true,
+
+              //maxItemsToJoin: 10000,
+              datatype: 'local',
+              //url: gridFileUrl,
+              //mtype: 'GET',
+              data: data,
+
+              //datatype: 'xmlstring',
+              //datastr: mystr,
+              //rowtotal: 3000,
+
+              colNames: ["Col1", "Col2", "Col3", "Col4", "Col5", "Col6", "Col7", "Col9", "Col11", "Col13"],
+              colModel: [
+                {name: 'refNumbers', index: 'ref numbers', width: 40, hidden: false, sortable: false, xmlmap:"refNumbers"},
+                {name: 'itemId', index: 'item id', width: 55, hidden:false, sortable:false, xmlmap:"itemId", formatter: strikethroughFormatter},
+                {name: 'itemName', index: 'item name', width: 400, hidden: false, sortable:false, xmlmap:"itemName", formatter: strikethroughFormatter},
+                {name: 'itemCode', index: 'item code', width: 1, hidden: true, sortable: false, xmlmap:"itemCode", formatter: strikethroughFormatter},
+                {name: 'appCategory', index: 'app category', width: 1, hidden: true, sortable: false, xmlmap:"appCategory", formatter: strikethroughFormatter},
+                {name: 'appId', index: 'app id', width: 85, hidden: false, sortable: false, xmlmap:"appId", formatter: strikethroughFormatter},
+                {name: 'appName', index: 'app name', width: 200, hidden: false, sortable: false, xmlmap:"appName", formatter: strikethroughFormatter},
+                //{name: 'appCode', index: 'app code', width: 130, hidden: false, sortable: false, xmlmap:"appCode", formatter: strikethroughFormatter},
+                {name: 'detailId', index: 'detail id', width: 60, hidden: false, sortable: false, xmlmap:"detailId", formatter: strikethroughFormatter},
+                //{name: 'detailName', index: 'detail name', width: 275, hidden: false, sortable: false, xmlmap:"detailName", formatter: strikethroughFormatter},
+                {name: 'detailCode', index: 'detail code', width: 1, hidden: true, sortable: false, xmlmap:"detailCode", formatter: strikethroughFormatter},
+                //{name: 'detailNotes', index: 'detail notes', width: 60, hidden: false, sortable: false, xmlmap:"detailNotes", formatter: strikethroughFormatter},
+                {name: 'isDeleted', index: 'isDeleted', width: 1, hidden: true, sortable: false, xmlmap:"isDeleted", formatter: strikethroughFormatter}
+              ],
+              xmlReader: {
+                root:"items",
+                row:"item",
+                page:"items>currentpage",
+                total:"items>totalpages",
+                records:"items>totalrecords",
+                repeatitems: false
+              },
+              treeReader: {
+                level_field: "level",
+                parent_id_field: "parentId",
+                leaf_field: "isLeaf",
+                expanded_field: "isExpanded",
+                loaded: "isLoaded"
+              },
+              width: '1500',
+              height: '100%',
+              shrinkToFit: true,
+              //altRows: true,
+              //altClass: 'myAltRowClass',
+              pager: '#pager',
+              caption: '',
+
+
+              ///////////////////////// loadComplete: Actions to take when loading is finished /////////////////////////
+              loadComplete: function (data) {
+                //if (window.console) { console.log("loadComplete"); }
+                // Stop the spinner and hide it
+                spinner.stop();
+                $('#wrapper').addClass('hidden');
+
+                // Now that the grid is loaded and set up, show it
+                $('.ui-jqgrid').fadeIn(1000);
+
+                //Show the buttons and other items that will be used with the grid
+                $('.grid-stuff').fadeIn(1000);
+
+                // Check performance
+                //alert("Filling the grid time: " + this.p.totaltime + "ms\nxmlParsingTime: " + xmlParsingTime);
+
+              }, // end loadComplete
+
+               ///////////////////////// loadError: Actions to take when there is a loading error  /////////////////////////
+              loadError: function(xhr, status, error){
+                // Stop the spinner and hide it
+                spinner.stop();
+                $('#wrapper').addClass('hidden');
+
+                // Deal with error
+                $('#messageToUser').html('The following error has occurred while this file was being loaded: ' + error + '.  Please inform the owner of this web page about this error.');
+                $('#messageToUser').show();
+              } // end loadError
+
+            });  // end jqGrid
+
+
+
+            ///////////////////////// Create group headers /////////////////////////
+            grid.jqGrid('setGroupHeaders', {
+                      useColSpanStyle: false,
+                      groupHeaders:[
+                        {startColumnName: 'itemId', numberOfColumns: 3, titleText: '<center>Items</center>'},
+                        {startColumnName: 'appCategory', numberOfColumns: 4, titleText: '<center>Apps</center>'}
+                        //{startColumnName: 'detailId', numberOfColumns: 4, titleText: '<center>Details</center>'}
+                      ]
+            }); // end jqGrid
+            }, 50);
+      }
+  });
+}
+
+
+  ///////////////////////// $(doc).ready() catch /////////////////////////
+  }
+  catch(error) {
+      alert(error.message);
+  }
+
+
+  
+  ///////////////////////// Other Functions /////////////////////////
+  <!-- Bind function to expand all button -->
+  $('#expandAll').on('click', expandAll);	
+
+  <!-- Function for expand all button -->
+  function expandAll(){
+    try{
+      $("#theGrid .treeclick").each(function() {
+        if($(this).hasClass("tree-plus")) {
+          $(this).trigger("click");
+        }
+      });	
+    } catch(error) {
+      alert(error.message);
+    }
+  }
+
+  <!-- Bind function to collapse all button -->
+  $('#collapseAll').on('click', collapseAll);
+		
+  <!-- Function for collapse all button -->
+  function collapseAll(){
+    try{
+      $("#theGrid .treeclick").each(function() {
+        if($(this).hasClass("tree-minus")) {
+          $(this).trigger("click");
+        }
+      });	
+    } catch(error) {
+      alert(error.message);
+    }
+  }
+
+  <!-- Bind function to each show level button -->
+  $('#level00').on('click', function(){
+    display(0);
+  });
+
+  $('#level01').on('click', function(){
+    display(1);
+  });
+
+  $('#level02').on('click', function(){
+    display(2);
+  });
+
+  $('#level03').on('click', function(){
+    display(3);
+  });
+
+  $('#level04').on('click', function(){
+    display(4);
+  });
+
+  $('#level05').on('click', function(){
+    display(5);
+  });
+
+  $('#level06').on('click', function(){
+    display(6);
+  });
+
+  <!-- Function for show level buttons -->
+  <!-- Inspired by http://codersview.com/jquery-pages/jQgrid-example-with-tree-node-structure-with-level-wise-external-button.htm -->
+  function display(level){
+    try{
+      var grid = $("#theGrid");
+
+      var row;
+      var visibleLevel;
+      var rowlevel;				
+      var rootNodes;
+      var rootNode;
+      var p;
+      var parents;
+      var parentNodes = [];
+      var childNodes =[];
+      var children;
+      var child;
+      var c;
+
+      collapseAll(); // This is all we need to do to show the root nodes.
+      visibleLevel = 0;
+
+      if(level > 0) {
+        rootNodes = grid.jqGrid('getRootNodes');
+        parentNodes = rootNodes;
+                                        
+        <!-- Expand the parent nodes and get the children of the parent nodes -->
+        while (level > visibleLevel) {                                     
+          $.each(parentNodes, function(index, value){
+            grid.expandRow(value);
+            grid.expandNode(value);
+                                                        
+            if( !(visibleLevel + 1 == level) ){
+               $.merge( childNodes, grid.jqGrid('getNodeChildren', value) );
+            }
+          });
+                                           
+          visibleLevel += 1;                                               
+          parentNodes = childNodes;
+
+        } // end while     
+
+      parentNodes.length = 0;
+      } // end if
+
+    }  // end try
+    catch(error) {
+      alert(error.message);
+    }
+			
+    return false;
+  } // end function
+
+}); // end $(doc).ready
+       
+ -->
+</script>
+
+<!-- ****************************************************** HTML ****************************************************** -->
+<h1>Lorem ipsum dolor sit amet</h1>
+<h2>Mentitum antiopam eu his</h2>
+<div class='Mentitum'>
+<p>Mentitum antiopam eu his, ex sit nulla possit reprehendunt, pri ei lorem soleat delectus. Dissentias reprehendunt eu sea, ius eu clita utinam eirmod, vel et amet scribentur. Ea has possit everti persecuti, at quidam senserit mel, mucius pericula duo at. Ne timeam malorum sit, eam ad bonorum mediocritatem.</p>
+</div>
+<h3>Ponderum intellegebat</h3>
+<div class='Ponderum'>
+<p>Ponderum intellegebat mel cu. Quo ad quod temporibus. Cum ea iudico salutatus forensibus, eum an decore nemore. No assum quaestio ocurreret quo.</p>
+</div>
+
+<p><span id='messageToUser' class='hideOnJsEnabled'>It appears that you do not have <span class="emphasis">JavaScript</span> enabled.  Please enable <span class="emphasis">JavaScript</span> to view the data in a hierarchical format.</span></p>
+
+<div class='grid-stuff' >
+<button id='expandAll' type='button'>Expand All</button>
+<button id='collapseAll' type='button'>Collapse All</button>
+</div>
+
+<div id='showLevel' class='grid-stuff'>
+<span class='bold'>Show level:</span>
+<!-- The buttons are labeled with natural numbers because I think this is the way most end users will count. -->
+<!-- Other than these buttons, the levels of the item tree are counted starting from zero. -->
+<button id='level00' type='button'>1</button>
+<button id='level01' type='button'>2</button>
+<button id='level02' type='button'>3</button>
+<button id='level03' type='button'>4</button>
+<button id='level04' type='button'>5</button>
+<button id='level05' type='button'>6</button>
+<button id='level06' type='button'>7</button>
+</div>
+
+<table id="theGrid"><tr><td></td></tr></table> 
+<div id="pager"></div> 
+<div id="wrapper" class='hidden'><div id="content"></div></div>
